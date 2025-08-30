@@ -1,0 +1,186 @@
+# PEMFC CFD Study - Default Configuration
+# ======================================
+
+# Geometry Parameters
+geometry:
+  channel_depth: 1.0e-3          # m
+  channel_width_inlet: 1.0e-3    # m
+  channel_width_outlet: 0.85e-3  # m (15% taper)
+  rib_width: 1.0e-3              # m
+  gdl_thickness: 2.5e-4          # m
+  membrane_thickness: 7.5e-5     # m
+  num_channels: 8                 # Number of interdigitated channels
+  channel_length: 20.0e-3        # m
+  manifold_levels: 2              # Two-level lung-inspired branching
+
+# Material Properties
+materials:
+  # Fluid properties (air at 353K, 1atm)
+  rho_air: 1.009                 # kg/m³
+  mu_air: 2.08e-5                # Pa·s
+  cp_air: 1008.0                 # J/(kg·K)
+  k_air: 0.0301                  # W/(m·K)
+  
+  # GDL properties
+  gdl_porosity: 0.7
+  gdl_permeability: 1.0e-12      # m²
+  gdl_forchheimer_coeff: 0.1
+  gdl_tortuosity: 1.5
+  k_gdl_axial: 20.0              # W/(m·K)
+  k_gdl_transverse: 1.0          # W/(m·K)
+  
+  # Membrane properties
+  k_membrane: 0.95               # W/(m·K)
+  membrane_conductivity: 10.0    # S/m
+  
+  # Species properties
+  d_o2_air: 2.0e-5              # m²/s
+  d_h2o_air: 2.8e-5             # m²/s
+
+# Electrochemical Parameters
+electrochemistry:
+  faraday_constant: 96485.0      # C/mol
+  gas_constant: 8.314            # J/(mol·K)
+  alpha_anodic: 0.5
+  alpha_cathodic: 0.5
+  exchange_current_density: 1.0e-3  # A/m²
+  reversible_voltage: 1.23       # V
+
+# Operating Conditions
+operating_conditions:
+  temperature: 353.0              # K (80°C)
+  pressure: 1.013e5              # Pa (1 atm)
+  o2_mole_fraction: 0.21
+  h2o_mole_fraction: 0.0         # Dry air inlet
+  
+  # Operating matrix
+  current_densities: [0.3, 0.8, 1.2]  # A/cm²
+  stoichiometries: [1.5, 2.5]         # Low and high stoichiometry
+  
+  # Active area
+  active_area: 25.0e-4           # m² (5cm × 5cm)
+
+# Numerical Parameters
+numerics:
+  # Mesh refinement levels
+  mesh_levels: ["coarse", "medium", "fine"]
+  
+  # Solver parameters
+  max_iterations: 50
+  tolerance: 1.0e-6
+  relaxation_factor: 0.7
+  
+  # PETSc options
+  petsc_options:
+    navier_stokes:
+      ksp_type: "gmres"
+      pc_type: "fieldsplit"
+      ksp_rtol: 1.0e-6
+      ksp_max_it: 1000
+    
+    energy:
+      ksp_type: "cg"
+      pc_type: "hypre"
+      ksp_rtol: 1.0e-6
+      ksp_max_it: 500
+    
+    species:
+      ksp_type: "cg"
+      pc_type: "hypre"
+      ksp_rtol: 1.0e-6
+      ksp_max_it: 500
+
+# Boundary Conditions
+boundary_conditions:
+  inlet:
+    velocity: [1.0, 0.0, 0.0]   # m/s (bulk velocity calculated from stoichiometry)
+    temperature: 353.0            # K
+    o2_mass_fraction: 0.21
+    h2o_mass_fraction: 0.0
+  
+  outlet:
+    pressure: 0.0                 # Pa (reference pressure)
+    temperature_gradient: "zero"  # Zero gradient
+    species_gradient: "zero"      # Zero gradient
+  
+  walls:
+    velocity: "no_slip"
+    temperature: "adiabatic"      # or "constant_heat_transfer"
+    species: "zero_flux"
+
+# Post-processing
+post_processing:
+  # Output formats
+  output_formats: ["png", "pdf"]
+  figure_dpi: 300
+  
+  # Key performance indicators
+  kpis:
+    - pressure_drop
+    - outlet_o2_concentration
+    - under_rib_o2_minimum
+    - average_membrane_temperature
+    - peak_temperature_gradient
+    - pumping_power
+  
+  # Plotting options
+  plots:
+    velocity:
+      - "contours"
+      - "streamlines"
+      - "mid_plane"
+      - "under_rib_sections"
+    
+    temperature:
+      - "membrane_mid_plane"
+      - "hot_spot_locations"
+      - "gradient_magnitude"
+    
+    species:
+      - "membrane_adjacent_o2"
+      - "outlet_profiles"
+      - "under_rib_minima"
+    
+    pressure:
+      - "field_map"
+      - "pressure_drop_vs_flow"
+      - "pumping_power"
+
+# Validation and Convergence
+validation:
+  # Mesh independence criteria
+  mesh_independence:
+    max_relative_change: 0.02    # 2% threshold
+    convergence_criteria: "medium_to_fine"
+  
+  # Conservation checks
+  conservation:
+    mass_imbalance_threshold: 0.005    # 0.5%
+    species_imbalance_threshold: 0.005  # 0.5%
+    energy_imbalance_threshold: 0.01   # 1%
+  
+  # Residual convergence
+  residuals:
+    max_residual: 1.0e-6
+    fields: ["velocity", "pressure", "temperature", "o2", "h2o"]
+
+# Output Settings
+output:
+  # Directory structure
+  base_dir: "outputs"
+  figures_dir: "figures"
+  data_dir: "data"
+  logs_dir: "logs"
+  solutions_dir: "solutions"
+  
+  # File naming
+  naming_convention: "{mesh}_{current}_{stoich}"
+  
+  # Logging
+  log_level: "INFO"
+  save_logs: true
+  
+  # Results export
+  export_formats: ["csv", "json"]
+  save_solutions: true
+  save_meshes: true
